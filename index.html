@@ -519,6 +519,14 @@
 
                 <!-- TAB: IMPORT JSON -->
                 <div id="tab-import" class="hidden p-4 sm:p-6 max-w-2xl mx-auto w-full space-y-5">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <label class="block text-cyan-400 text-xs font-bold mb-1 uppercase tracking-widest">Assign to Subject</label>
+                        <select id="import-subject" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm cursor-pointer appearance-none">
+                            <option value="" disabled selected>-- Select Subject --</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>All imported questions will be saved to this subject. If it's a new subject, create it in the BUILD tab first.</p>
+                    </div>
+
                     <div id="drop-zone" ondragover="event.preventDefault(); this.classList.add('border-violet-400')" ondragleave="this.classList.remove('border-violet-400')" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-600 hover:border-violet-500 rounded-2xl p-10 text-center cursor-pointer transition-colors" onclick="document.getElementById('json-file-input').click()">
                         <i class="fa-solid fa-file-code text-4xl text-violet-400 mb-4 block"></i>
                         <p class="text-white font-bold text-sm">Drag & Drop your JSON file here</p>
@@ -533,6 +541,27 @@
                         </button>
                     </div>
                     <div id="import-status" class="hidden rounded-xl p-4 text-sm font-bold text-center"></div>
+
+                    <!-- AI Prompt Helper -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mt-5">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-violet-400 font-bold uppercase tracking-widest text-[10px]"><i class="fa-solid fa-robot mr-2"></i>AI Quiz Prompt</h3>
+                            <button onclick="copyAIPrompt()" id="btn-copy-ai" class="text-[10px] bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-1.5 px-3 rounded-lg transition-colors uppercase tracking-widest"><i class="fa-regular fa-copy mr-1"></i>Copy</button>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mb-3 leading-relaxed">Want to generate a quiz using ChatGPT or Gemini? Copy the prompt below, replace <strong class="text-cyan-400">[TOPIC]</strong>, and paste the AI's response in the box above!</p>
+                        <textarea id="ai-prompt-text" rows="8" readonly class="w-full bg-slate-950 text-slate-500 border border-slate-800 rounded-lg py-2 px-3 focus:outline-none text-[10px] font-mono resize-none leading-relaxed">Please generate 10 multiple choice questions about [ENTER TOPIC HERE]. Format the output STRICTLY as a JSON array of objects with this exact structure:
+[
+  {
+    "topic": "Lesson/Topic Name",
+    "type": "single",
+    "question": "Question text here?",
+    "choices": ["A", "B", "C", "D"],
+    "correctAnswer": "A",
+    "explanation": "Brief explanation here."
+  }
+]
+IMPORTANT: Output ONLY the raw JSON array. Do not include any markdown formatting like ```json or any intro/outro text.</textarea>
+                    </div>
                 </div>
 
                 <!-- TAB: PREVIEW -->

@@ -13,12 +13,17 @@ async function initBuilderScreen() {
 
 async function populateBuilderSubjects() {
     const subjSelect = document.getElementById('b-subject');
+    const importSelect = document.getElementById('import-subject');
+    
     subjSelect.innerHTML = '<option value="" disabled selected>-- Select Subject --</option>';
+    if(importSelect) importSelect.innerHTML = '<option value="" disabled selected>-- Select Subject --</option>';
     
     try {
         const snapshot = await db.collection('subjects').get();
         snapshot.forEach(doc => {
-            subjSelect.innerHTML += `<option value="${doc.id}">${doc.data().name} (${doc.id})</option>`;
+            const html = `<option value="${doc.id}">${doc.data().name} (${doc.id})</option>`;
+            subjSelect.innerHTML += html;
+            if(importSelect) importSelect.innerHTML += html;
         });
     } catch(e) { console.error(e); }
     
@@ -446,6 +451,14 @@ function importFromPaste() {
 }
 
 function processImportedJSON(raw) {
+    const importSubjVal = document.getElementById('import-subject').value;
+    if (!importSubjVal) {
+        showImportStatus('Please select a Subject first.', false);
+        return;
+    }
+    const selectEl = document.getElementById('import-subject');
+    const subjectName = selectEl.options[selectEl.selectedIndex].text.split(' (')[0];
+
     try {
         const data = JSON.parse(raw);
         if (!Array.isArray(data)) throw new Error('Root must be an array.');
@@ -454,6 +467,8 @@ function processImportedJSON(raw) {
             const topic = topicObj.topic || 'Untitled Topic';
             (topicObj.questions || []).forEach(q => {
                 builderQuestions.push({
+                    subjectId: importSubjVal,
+                    subjectName: subjectName,
                     topic,
                     type: q.type || 'single',
                     image: q.image || '',
@@ -470,6 +485,22 @@ function processImportedJSON(raw) {
     } catch(err) {
         showImportStatus('Invalid JSON: ' + err.message, false);
     }
+}
+
+function copyAIPrompt() {
+    const text = document.getElementById('ai-prompt-text').value;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('btn-copy-ai');
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Copied!';
+        btn.classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
+        btn.classList.remove('bg-slate-800', 'border-slate-700', 'text-slate-400');
+        setTimeout(() => {
+            btn.innerHTML = oldHtml;
+            btn.classList.remove('bg-emerald-600', 'border-emerald-500', 'text-white');
+            btn.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-400');
+        }, 2000);
+    }).catch(err => console.error('Failed to copy text: ', err));
 }
 
 function showImportStatus(msg, success) {
