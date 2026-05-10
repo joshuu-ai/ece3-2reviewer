@@ -478,31 +478,38 @@ async function handleBuilderImageUpload(event) {
 // ---- JSON IMPORT ----
 function handleFileDrop(e) {
     e.preventDefault();
-    document.getElementById('drop-zone').classList.remove('border-violet-400');
-    const file = e.dataTransfer.files[0];
-    if (file) readJSONFile(file);
+    e.currentTarget.classList.remove('border-violet-400');
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) processFiles(files);
 }
 
 function handleFileInput(e) {
-    const file = e.target.files[0];
-    if (file) readJSONFile(file);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) processFiles(files);
     e.target.value = ''; // Reset so the same file can be selected again
 }
 
-function readJSONFile(file) {
-    if (!file.name.endsWith('.json')) { showImportStatus('Only .json files are supported.', false); return; }
+function processFiles(files) {
+    const jsonFile = files.find(f => f.name.endsWith('.json'));
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    
+    if (!jsonFile) {
+        showImportStatus('Please include at least one .json file.', false);
+        return;
+    }
+    
     const reader = new FileReader();
-    reader.onload = e => processImportedJSON(e.target.result);
-    reader.readAsText(file);
+    reader.onload = async e => await processImportedJSON(e.target.result, imageFiles);
+    reader.readAsText(jsonFile);
 }
 
-function importFromPaste() {
+async function importFromPaste() {
     const raw = document.getElementById('json-paste-area').value.trim();
     if (!raw) { showImportStatus('Paste your JSON first.', false); return; }
-    processImportedJSON(raw);
+    await processImportedJSON(raw, []);
 }
 
-function processImportedJSON(raw) {
+async function processImportedJSON(raw, imageFiles = []) {
     let importSubjVal = document.getElementById('import-subject').value;
     let subjectName = '';
 
@@ -533,9 +540,27 @@ function processImportedJSON(raw) {
         const data = JSON.parse(raw);
         if (!Array.isArray(data)) throw new Error('Root must be an array.');
         let added = 0;
-        data.forEach(topicObj => {
+        let matchedImages = 0;
+        
+        showImportStatus(`Processing data...`, true);
+
+        for (const topicObj of data) {
             const topic = topicObj.topic || 'Untitled Topic';
-            (topicObj.questions || []).forEach(q => {
+            for (const q of (topicObj.questions || [])) {
+                let finalImage = q.image || '';
+                
+                // Bulk Image Matching
+                if (finalImage && imageFiles.length > 0) {
+                    const filename = finalImage.split('/').pop().split('\\').pop();
+                    const matchedFile = imageFiles.find(f => f.name === filename);
+                    if (matchedFile) {
+                        try {
+                            finalImage = await compressImageToBase64(matchedFile);
+                            matchedImages++;
+                        } catch(e) { console.error('Failed compressing', filename, e); }
+                    }
+                }
+
                 const id = Date.now().toString() + Math.random().toString(36).substring(2);
                 builderQuestions.push({
                     id,
@@ -543,17 +568,21 @@ function processImportedJSON(raw) {
                     subjectName: subjectName,
                     topic,
                     type: q.type || 'single',
-                    image: q.image || '',
+                    image: finalImage,
                     question: q.question || '',
                     choices: q.choices || [],
                     correctAnswer: q.correctAnswer,
                     explanation: q.explanation || ''
                 });
                 added++;
-            });
-        });
-        showImportStatus(`✓ Imported ${added} question${added!==1?'s':''} from ${data.length} topic${data.length!==1?'s':''}!`, true);
-        setTimeout(() => { switchBuilderTab('preview'); }, 1200);
+            }
+        }
+        
+        let msg = `✓ Imported ${added} question${added!==1?'s':''}!`;
+        if (matchedImages > 0) msg += ` (Matched ${matchedImages} image${matchedImages!==1?'s':''})`;
+        showImportStatus(msg, true);
+        
+        setTimeout(() => { switchBuilderTab('preview'); }, 1500);
     } catch(err) {
         showImportStatus('Invalid JSON: ' + err.message, false);
     }

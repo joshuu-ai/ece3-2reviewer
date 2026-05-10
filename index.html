@@ -537,9 +537,9 @@
 
                     <div id="drop-zone" ondragover="event.preventDefault(); this.classList.add('border-violet-400')" ondragleave="this.classList.remove('border-violet-400')" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-600 hover:border-violet-500 rounded-2xl p-10 text-center cursor-pointer transition-colors" onclick="document.getElementById('json-file-input').click()">
                         <i class="fa-solid fa-file-code text-4xl text-violet-400 mb-4 block"></i>
-                        <p class="text-white font-bold text-sm">Drag & Drop your JSON file here</p>
-                        <p class="text-slate-500 text-xs mt-1">or click to browse</p>
-                        <input id="json-file-input" type="file" accept=".json" class="hidden" onchange="handleFileInput(event)">
+                        <p class="text-white font-bold text-sm">Drag & Drop your JSON file (and Images) here</p>
+                        <p class="text-slate-500 text-[10px] mt-1 leading-relaxed">Select both your .json file AND all your image files at the same time.<br>We will automatically match and merge them!</p>
+                        <input id="json-file-input" type="file" accept=".json, image/*" multiple class="hidden" onchange="handleFileInput(event)">
                     </div>
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                         <h3 class="text-violet-400 font-bold uppercase tracking-widest text-xs mb-3">Or Paste JSON Directly</h3>
