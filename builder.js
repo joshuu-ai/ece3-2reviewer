@@ -612,9 +612,24 @@ async function processImportedJSON(raw, imageFiles = []) {
         
         showImportStatus(`Processing data...`, true);
 
+        // Deduplication tracker
+        const seenQuestions = new Set();
+        builderQuestions.forEach(existingQ => {
+            const text = (existingQ.question || '').trim().toLowerCase();
+            seenQuestions.add(`${existingQ.topic}::${text}`);
+        });
+
         for (const topicObj of data) {
             const topic = topicObj.topic || 'Untitled Topic';
             for (const q of (topicObj.questions || [])) {
+                const qText = (q.question || '').trim().toLowerCase();
+                const uniqueKey = `${topic}::${qText}`;
+                
+                if (seenQuestions.has(uniqueKey)) {
+                    continue; // Skip duplicate question
+                }
+                seenQuestions.add(uniqueKey);
+
                 let finalImage = q.image || '';
                 
                 // Bulk Image Matching
