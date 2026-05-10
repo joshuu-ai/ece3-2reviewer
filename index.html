@@ -535,11 +535,18 @@
                         <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>All imported questions will be saved to this subject.</p>
                     </div>
 
-                    <div id="drop-zone" ondragover="event.preventDefault(); this.classList.add('border-violet-400')" ondragleave="this.classList.remove('border-violet-400')" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-600 hover:border-violet-500 rounded-2xl p-10 text-center cursor-pointer transition-colors" onclick="document.getElementById('json-file-input').click()">
-                        <i class="fa-solid fa-file-code text-4xl text-violet-400 mb-4 block"></i>
-                        <p class="text-white font-bold text-sm">Drag & Drop your JSON file (and Images) here</p>
-                        <p class="text-slate-500 text-[10px] mt-1 leading-relaxed">Select both your .json file AND all your image files at the same time.<br>We will automatically match and merge them!</p>
+                    <div id="drop-zone" ondragover="event.preventDefault(); this.classList.add('border-violet-400')" ondragleave="this.classList.remove('border-violet-400')" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-600 hover:border-violet-500 rounded-2xl p-10 text-center transition-colors">
+                        <i class="fa-solid fa-folder-open text-4xl text-violet-400 mb-4 block"></i>
+                        <p class="text-white font-bold text-sm mb-2">Drag & Drop files or folders here</p>
+                        <p class="text-slate-500 text-[10px] mb-4 leading-relaxed">Drop your .json file and images, OR drop the whole subject folder!</p>
+                        
+                        <div class="flex justify-center gap-3">
+                            <button onclick="document.getElementById('json-file-input').click()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors border border-slate-700">Select Files</button>
+                            <button onclick="document.getElementById('json-folder-input').click()" class="bg-violet-900/50 hover:bg-violet-800 border border-violet-500/50 text-violet-300 text-xs font-bold py-2 px-4 rounded-lg transition-colors">Select Folder</button>
+                        </div>
+                        
                         <input id="json-file-input" type="file" accept=".json, image/*" multiple class="hidden" onchange="handleFileInput(event)">
+                        <input id="json-folder-input" type="file" webkitdirectory directory multiple class="hidden" onchange="handleFileInput(event)">
                     </div>
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                         <h3 class="text-violet-400 font-bold uppercase tracking-widest text-xs mb-3">Or Paste JSON Directly</h3>

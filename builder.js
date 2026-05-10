@@ -476,11 +476,56 @@ async function handleBuilderImageUpload(event) {
 }
 
 // ---- JSON IMPORT ----
-function handleFileDrop(e) {
+async function handleFileDrop(e) {
     e.preventDefault();
     e.currentTarget.classList.remove('border-violet-400');
-    const files = Array.from(e.dataTransfer.files);
+    
+    let files = [];
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        files = await getFilesFromDataTransfer(e.dataTransfer.items);
+    } else {
+        files = Array.from(e.dataTransfer.files);
+    }
+    
     if (files.length > 0) processFiles(files);
+}
+
+async function getFilesFromDataTransfer(items) {
+    const files = [];
+    
+    async function readEntry(entry) {
+        if (entry.isFile) {
+            const file = await new Promise(resolve => entry.file(resolve));
+            files.push(file);
+        } else if (entry.isDirectory) {
+            const dirReader = entry.createReader();
+            let entries = [];
+            const readEntries = () => new Promise((resolve, reject) => {
+                dirReader.readEntries(results => {
+                    if (results.length) {
+                        entries = entries.concat(results);
+                        readEntries().then(resolve).catch(reject);
+                    } else resolve();
+                }, reject);
+            });
+            await readEntries();
+            for (const child of entries) {
+                await readEntry(child);
+            }
+        }
+    }
+    
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.webkitGetAsEntry) {
+            const entry = item.webkitGetAsEntry();
+            if (entry) await readEntry(entry);
+        } else if (item.getAsFile) {
+            const file = item.getAsFile();
+            if (file) files.push(file);
+        }
+    }
+    return files;
 }
 
 function handleFileInput(e) {
