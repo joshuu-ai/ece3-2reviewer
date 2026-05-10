@@ -343,6 +343,8 @@ async function saveBuilderToDatabase() {
         builderQuestions = [];
         renderBuilderPreview();
         populateBuilderSubjects(); // Refresh dropdown
+        clearBuilderForm(false); // Reset hidden fields and selections
+        if (typeof renderSubjectButtons === 'function') renderSubjectButtons(); // Refresh dashboard UI
     } catch(err) {
         showBuilderToast('Error saving to Database.', false);
         console.error(err);
@@ -350,6 +352,41 @@ async function saveBuilderToDatabase() {
     
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xl"></i> Save to Database';
+}
+
+// Image Compression Helper
+function compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth || height > maxHeight) {
+                    if (width / height > maxWidth / maxHeight) {
+                        height = Math.round((maxWidth / width) * height);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((maxHeight / height) * width);
+                        height = maxHeight;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(blob => {
+                    resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' }));
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
 }
 
 async function handleBuilderImageUpload(event) {
@@ -363,11 +400,16 @@ async function handleBuilderImageUpload(event) {
     inputEl.disabled = true;
     
     try {
-        const ref = storage.ref(`question_images/${Date.now()}_${file.name}`);
-        await ref.put(file);
+        statusEl.innerText = "COMPRESSING...";
+        const compressedFile = await compressImage(file);
+        
+        statusEl.innerText = "UPLOADING...";
+        const ref = storage.ref(`question_images/${Date.now()}_${compressedFile.name}`);
+        await ref.put(compressedFile);
+        
         const url = await ref.getDownloadURL();
         inputEl.value = url;
-        showBuilderToast('Image uploaded!', true);
+        showBuilderToast('Image uploaded & compressed!', true);
     } catch(err) {
         showBuilderToast('Image upload failed.', false);
         console.error(err);
@@ -375,6 +417,8 @@ async function handleBuilderImageUpload(event) {
     
     statusEl.classList.add('hidden');
     inputEl.disabled = false;
+    // reset input so same file can be selected again
+    event.target.value = '';
 }
 
 // ---- JSON IMPORT ----
