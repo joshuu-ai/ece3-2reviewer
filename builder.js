@@ -40,10 +40,24 @@ function handleImportSubjectChange() {
     } else {
         newGroup.classList.add('hidden');
     }
+    
+    // Sync with b-subject
+    const bSubj = document.getElementById('b-subject');
+    if (bSubj && bSubj.value !== val) {
+        bSubj.value = val;
+        handleBuilderSubjectChange(true);
+    }
 }
 
-async function handleBuilderSubjectChange() {
+async function handleBuilderSubjectChange(fromSync = false) {
     const val = document.getElementById('b-subject').value;
+    
+    // Sync with import-subject
+    const importSubj = document.getElementById('import-subject');
+    if (!fromSync && importSubj && importSubj.value !== val) {
+        importSubj.value = val;
+        handleImportSubjectChange();
+    }
     const newGroup = document.getElementById('b-new-subject-group');
     const lessonSelect = document.getElementById('b-lesson');
     const delSubjBtn = document.getElementById('btn-del-subj');
@@ -472,6 +486,7 @@ function handleFileDrop(e) {
 function handleFileInput(e) {
     const file = e.target.files[0];
     if (file) readJSONFile(file);
+    e.target.value = ''; // Reset so the same file can be selected again
 }
 
 function readJSONFile(file) {
@@ -491,14 +506,20 @@ function processImportedJSON(raw) {
     let importSubjVal = document.getElementById('import-subject').value;
     let subjectName = '';
 
+    // Fallback: If import-subject is empty, check if b-subject is selected
+    if (!importSubjVal) {
+        importSubjVal = document.getElementById('b-subject').value;
+        if (importSubjVal) document.getElementById('import-subject').value = importSubjVal;
+    }
+
     if (!importSubjVal) {
         showImportStatus('Please select a Subject first.', false);
         return;
     }
 
     if (importSubjVal === 'ADD_NEW') {
-        importSubjVal = document.getElementById('import-new-subj-id').value.trim().toUpperCase();
-        subjectName = document.getElementById('import-new-subj-name').value.trim();
+        importSubjVal = document.getElementById('import-new-subj-id').value.trim().toUpperCase() || document.getElementById('b-new-subj-id').value.trim().toUpperCase();
+        subjectName = document.getElementById('import-new-subj-name').value.trim() || document.getElementById('b-new-subj-name').value.trim();
         if (!importSubjVal || !subjectName) {
             showImportStatus('Please fill out the new subject fields.', false);
             return;
