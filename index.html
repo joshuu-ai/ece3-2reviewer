@@ -521,10 +521,18 @@
                 <div id="tab-import" class="hidden p-4 sm:p-6 max-w-2xl mx-auto w-full space-y-5">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                         <label class="block text-cyan-400 text-xs font-bold mb-1 uppercase tracking-widest">Assign to Subject</label>
-                        <select id="import-subject" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm cursor-pointer appearance-none">
+                        <select id="import-subject" onchange="handleImportSubjectChange()" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm cursor-pointer appearance-none mb-2">
                             <option value="" disabled selected>-- Select Subject --</option>
                         </select>
-                        <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>All imported questions will be saved to this subject. If it's a new subject, create it in the BUILD tab first.</p>
+                        
+                        <!-- New Subject Fields (Hidden) -->
+                        <div id="import-new-subject-group" class="hidden space-y-3 bg-slate-950 p-4 rounded-xl border border-violet-500/30">
+                            <h4 class="text-violet-300 text-[10px] uppercase font-bold tracking-widest"><i class="fa-solid fa-folder-plus mr-1"></i> Add New Subject</h4>
+                            <input id="import-new-subj-id" type="text" placeholder="Subject Code (e.g. MATH101)" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-1.5 px-3 focus:border-violet-500 text-sm uppercase">
+                            <input id="import-new-subj-name" type="text" placeholder="Full Subject Name" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-1.5 px-3 focus:border-violet-500 text-sm">
+                        </div>
+
+                        <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>All imported questions will be saved to this subject.</p>
                     </div>
 
                     <div id="drop-zone" ondragover="event.preventDefault(); this.classList.add('border-violet-400')" ondragleave="this.classList.remove('border-violet-400')" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-600 hover:border-violet-500 rounded-2xl p-10 text-center cursor-pointer transition-colors" onclick="document.getElementById('json-file-input').click()">

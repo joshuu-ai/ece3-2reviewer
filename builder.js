@@ -28,6 +28,18 @@ async function populateBuilderSubjects() {
     } catch(e) { console.error(e); }
     
     subjSelect.innerHTML += '<option value="ADD_NEW" class="text-violet-400 font-bold">+ Add New Subject</option>';
+    if(importSelect) importSelect.innerHTML += '<option value="ADD_NEW" class="text-violet-400 font-bold">+ Add New Subject</option>';
+}
+
+function handleImportSubjectChange() {
+    const val = document.getElementById('import-subject').value;
+    const newGroup = document.getElementById('import-new-subject-group');
+    if (val === 'ADD_NEW') {
+        newGroup.classList.remove('hidden');
+        newGroup.classList.add('animate-slide-down');
+    } else {
+        newGroup.classList.add('hidden');
+    }
 }
 
 async function handleBuilderSubjectChange() {
@@ -207,9 +219,11 @@ function addBuilderQuestion() {
 function clearBuilderForm(keepTopic = false) {
     if (!keepTopic) {
         document.getElementById('b-subject').value = '';
+        document.getElementById('import-subject').value = '';
         document.getElementById('b-lesson').value = '';
         document.getElementById('b-lesson').disabled = true;
         document.getElementById('b-new-subject-group').classList.add('hidden');
+        document.getElementById('import-new-subject-group').classList.add('hidden');
         document.getElementById('b-new-lesson-group').classList.add('hidden');
     }
     document.getElementById('b-question').value = '';
@@ -451,13 +465,25 @@ function importFromPaste() {
 }
 
 function processImportedJSON(raw) {
-    const importSubjVal = document.getElementById('import-subject').value;
+    let importSubjVal = document.getElementById('import-subject').value;
+    let subjectName = '';
+
     if (!importSubjVal) {
         showImportStatus('Please select a Subject first.', false);
         return;
     }
-    const selectEl = document.getElementById('import-subject');
-    const subjectName = selectEl.options[selectEl.selectedIndex].text.split(' (')[0];
+
+    if (importSubjVal === 'ADD_NEW') {
+        importSubjVal = document.getElementById('import-new-subj-id').value.trim().toUpperCase();
+        subjectName = document.getElementById('import-new-subj-name').value.trim();
+        if (!importSubjVal || !subjectName) {
+            showImportStatus('Please fill out the new subject fields.', false);
+            return;
+        }
+    } else {
+        const selectEl = document.getElementById('import-subject');
+        subjectName = selectEl.options[selectEl.selectedIndex].text.split(' (')[0];
+    }
 
     try {
         const data = JSON.parse(raw);
