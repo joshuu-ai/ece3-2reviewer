@@ -534,18 +534,41 @@ function handleFileInput(e) {
     e.target.value = ''; // Reset so the same file can be selected again
 }
 
-function processFiles(files) {
-    const jsonFile = files.find(f => f.name.endsWith('.json'));
+async function processFiles(files) {
+    const jsonFiles = files.filter(f => f.name.endsWith('.json'));
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
     
-    if (!jsonFile) {
+    if (jsonFiles.length === 0) {
         showImportStatus('Please include at least one .json file.', false);
         return;
     }
     
-    const reader = new FileReader();
-    reader.onload = async e => await processImportedJSON(e.target.result, imageFiles);
-    reader.readAsText(jsonFile);
+    showImportStatus(`Reading ${jsonFiles.length} JSON file(s)...`, true);
+    
+    let combinedData = [];
+    for (const file of jsonFiles) {
+        try {
+            const raw = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+            const data = JSON.parse(raw);
+            if (Array.isArray(data)) {
+                combinedData = combinedData.concat(data);
+            }
+        } catch (e) {
+            console.error(`Failed to parse ${file.name}`, e);
+        }
+    }
+    
+    if (combinedData.length === 0) {
+        showImportStatus('No valid JSON arrays found in the files.', false);
+        return;
+    }
+    
+    await processImportedJSON(JSON.stringify(combinedData), imageFiles);
 }
 
 async function importFromPaste() {
