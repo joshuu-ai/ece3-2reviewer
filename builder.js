@@ -210,7 +210,8 @@ function addBuilderQuestion() {
         correctAnswer = checked;
     }
 
-    builderQuestions.push({ subjectId, subjectName, topic, type: builderType, image, question, choices, correctAnswer, explanation });
+    const id = Date.now().toString() + Math.random().toString(36).substring(2);
+    builderQuestions.push({ id, subjectId, subjectName, topic, type: builderType, image, question, choices, correctAnswer, explanation });
     playSound('complete');
     showBuilderToast(`✓ Question #${builderQuestions.length} added!`, true);
     clearBuilderForm(true);
@@ -257,9 +258,9 @@ function renderBuilderPreview() {
     actions.classList.remove('hidden');
 
     const grouped = {};
-    builderQuestions.forEach((q, idx) => {
+    builderQuestions.forEach((q) => {
         if (!grouped[q.topic]) grouped[q.topic] = [];
-        grouped[q.topic].push({...q, _idx: idx});
+        grouped[q.topic].push(q);
     });
 
     Object.entries(grouped).forEach(([topic, qs]) => {
@@ -269,7 +270,8 @@ function renderBuilderPreview() {
 
         qs.forEach(q => {
             const card = document.createElement('div');
-            card.className = 'bg-slate-950 border border-slate-800 rounded-xl p-4';
+            card.className = 'builder-question-card bg-slate-950 border border-slate-800 rounded-xl p-4 transition-all duration-300 transform';
+            card.id = `bq-${q.id}`;
             const typeBadge = q.type === 'multiple'
                 ? `<span class="text-blue-400 bg-blue-900/30 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Multi</span>`
                 : `<span class="text-emerald-400 bg-emerald-900/30 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Single</span>`;
@@ -278,7 +280,7 @@ function renderBuilderPreview() {
                     <p class="text-slate-200 text-sm font-semibold flex-1">${q.question}</p>
                     <div class="flex gap-2 items-center shrink-0">
                         ${typeBadge}
-                        <button onclick="removeBuilderQuestion(${q._idx})" class="text-rose-500 hover:text-rose-300 text-xs ml-1"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="removeBuilderQuestion('${q.id}')" class="text-rose-500 hover:text-rose-300 text-xs ml-1"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
                 ${q.image ? `<img src="${q.image}" class="w-full max-h-40 object-contain rounded-lg mb-2 bg-slate-800">` : ''}
@@ -293,9 +295,30 @@ function renderBuilderPreview() {
     });
 }
 
-function removeBuilderQuestion(idx) {
-    builderQuestions.splice(idx, 1);
-    renderBuilderPreview();
+function removeBuilderQuestion(id) {
+    builderQuestions = builderQuestions.filter(q => q.id !== id);
+    
+    const card = document.getElementById(`bq-${id}`);
+    if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            const topicDiv = card.parentElement;
+            card.remove();
+            
+            // If topic has no more questions, remove the topic section
+            if (topicDiv.querySelectorAll('.builder-question-card').length === 0) {
+                topicDiv.remove();
+            }
+            
+            // If list is empty
+            if (builderQuestions.length === 0) {
+                renderBuilderPreview();
+            }
+        }, 300);
+    } else {
+        renderBuilderPreview();
+    }
 }
 
 function clearAllBuilderQuestions() {
@@ -492,7 +515,9 @@ function processImportedJSON(raw) {
         data.forEach(topicObj => {
             const topic = topicObj.topic || 'Untitled Topic';
             (topicObj.questions || []).forEach(q => {
+                const id = Date.now().toString() + Math.random().toString(36).substring(2);
                 builderQuestions.push({
+                    id,
                     subjectId: importSubjVal,
                     subjectName: subjectName,
                     topic,
