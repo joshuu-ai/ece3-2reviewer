@@ -354,8 +354,8 @@ async function saveBuilderToDatabase() {
     btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xl"></i> Save to Database';
 }
 
-// Image Compression Helper
-function compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.7) {
+// Image Compression to Base64 (Bypasses Firebase Storage entirely!)
+function compressImageToBase64(file, maxWidth = 800, maxHeight = 800, quality = 0.6) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -379,9 +379,10 @@ function compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.7) {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                canvas.toBlob(blob => {
-                    resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' }));
-                }, 'image/jpeg', quality);
+                
+                // Convert directly to Base64 text!
+                const base64String = canvas.toDataURL('image/jpeg', quality);
+                resolve(base64String);
             };
             img.onerror = error => reject(error);
         };
@@ -400,25 +401,22 @@ async function handleBuilderImageUpload(event) {
     inputEl.disabled = true;
     
     try {
-        statusEl.innerText = "COMPRESSING...";
-        const compressedFile = await compressImage(file);
+        statusEl.innerText = "COMPRESSING & SAVING LOCALLY...";
         
-        statusEl.innerText = "UPLOADING...";
-        const ref = storage.ref(`question_images/${Date.now()}_${compressedFile.name}`);
-        await ref.put(compressedFile);
+        // This compresses the image and turns it into text
+        const base64Data = await compressImageToBase64(file);
         
-        const url = await ref.getDownloadURL();
-        inputEl.value = url;
-        showBuilderToast('Image uploaded & compressed!', true);
+        // Put the long text directly into the image box
+        inputEl.value = base64Data;
+        showBuilderToast('Image processed without Firebase Storage!', true);
     } catch(err) {
-        showBuilderToast('Image upload failed.', false);
+        showBuilderToast('Image processing failed.', false);
         console.error(err);
     }
     
     statusEl.classList.add('hidden');
     inputEl.disabled = false;
-    // reset input so same file can be selected again
-    event.target.value = '';
+    event.target.value = ''; // reset input
 }
 
 // ---- JSON IMPORT ----
