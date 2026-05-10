@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BSECE 3-2: Review & Quiz Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <!-- Firebase SDKs (Compat version for Vanilla JS) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body class="h-[100dvh] flex items-center justify-center p-2 sm:p-4 md:p-8 w-full relative">
+    <div class="grid-bg"></div>
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="max-w-4xl w-full bg-slate-900/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-[0_0_40px_rgba(6,182,212,0.15)] overflow-hidden border border-slate-800 relative z-10 flex flex-col h-full max-h-full sm:max-h-[95vh]">
+        
+        <!-- ==============================
+             SCREEN 0: LOGIN & REGISTRATION
+             ============================== -->
+        <div id="screen-auth" class="p-6 sm:p-8 md:p-12 flex-grow flex flex-col justify-center items-center overflow-y-auto animate-pop">
+            <div class="text-5xl mb-4 text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                <i class="fa-solid fa-user-astronaut"></i>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-emerald-400 text-center tracking-wide">
+                BSECE 3-2 Portal
+            </h1>
+            <p class="text-slate-400 mb-8 text-sm sm:text-base font-semibold tracking-wider text-center uppercase">Login or Sign up to save progress</p>
+            
+            <div class="w-full max-w-sm bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-inner">
+                <div class="mb-4">
+                    <label class="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-widest">CvSU Email Address</label>
+                    <input type="email" id="auth-email" placeholder="e.g. joshuamichael.tuto@cvsu.edu.ph" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-3 px-4 focus:outline-none focus:border-cyan-500 transition-colors">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-widest">Password</label>
+                    <input type="password" id="auth-pass" placeholder="••••••••" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-3 px-4 focus:outline-none focus:border-cyan-500 transition-colors">
+                    <div class="flex justify-end mt-2">
+                        <button onclick="handleForgotPassword()" class="text-cyan-500 hover:text-cyan-400 text-xs font-bold transition-colors">Forgot Password?</button>
+                    </div>
+                </div>
+                
+                <div id="auth-error" class="hidden text-xs font-bold mb-4 text-center py-2 rounded border">Message Box</div>
+
+                <div class="flex flex-col gap-3">
+                    <button id="btn-login" onclick="handleLogin()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-transform hover:scale-105 active:scale-95 uppercase tracking-wider">
+                        Log In
+                    </button>
+                    <div class="relative flex items-center py-2">
+                        <div class="flex-grow border-t border-slate-700"></div>
+                        <span class="flex-shrink-0 mx-4 text-slate-500 text-xs uppercase font-bold">OR</span>
+                        <div class="flex-grow border-t border-slate-700"></div>
+                    </div>
+                    <button id="btn-signup" onclick="handleSignUp()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white font-bold py-3 px-4 rounded-xl transition-transform hover:scale-105 active:scale-95 uppercase tracking-wider">
+                        Sign Up
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN 1: DASHBOARD
+             ============================== -->
+        <div id="screen-dashboard" class="hidden p-6 sm:p-8 md:p-12 flex-grow flex flex-col overflow-y-auto animate-pop relative min-h-0">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4 shrink-0 w-full">
+                <div class="flex items-center gap-3">
+                    <div class="bg-cyan-900/50 p-3 rounded-full text-cyan-400 border border-cyan-500/30">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Logged in as</p>
+                        <h2 id="dash-student-id" class="text-lg sm:text-xl font-black text-white truncate max-w-[150px] sm:max-w-xs">Student</h2>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="text-rose-400 hover:text-rose-300 transition-colors text-sm font-bold flex items-center gap-2 bg-rose-900/20 px-3 py-2 rounded-lg border border-rose-500/20 shrink-0">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="hidden sm:inline">Logout</span>
+                </button>
+            </div>
+
+            <!-- Stats Overview (Constrained width for PC) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 shrink-0 w-full max-w-2xl mx-auto">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                    <i class="fa-solid fa-trophy text-3xl text-yellow-400"></i>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase font-bold tracking-widest">Total Score</p>
+                        <p id="dash-total-score" class="text-xl sm:text-2xl font-black text-white">0</p>
+                    </div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                    <i class="fa-solid fa-fire text-3xl text-orange-500"></i>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase font-bold tracking-widest">Max Streak</p>
+                        <p id="dash-max-streak" class="text-xl sm:text-2xl font-black text-white">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard Button (Constrained width for PC) -->
+            <button onclick="showLeaderboard()" class="w-full max-w-2xl mx-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl mb-3 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] uppercase tracking-widest flex items-center justify-center gap-3 shrink-0">
+                <i class="fa-solid fa-ranking-star text-xl"></i> View Class Leaderboard
+            </button>
+
+            <button onclick="switchScreen('screen-builder'); initBuilderScreen();" class="w-full max-w-2xl mx-auto bg-gradient-to-r from-violet-700 to-fuchsia-700 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold py-4 rounded-xl mb-8 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] uppercase tracking-widest flex items-center justify-center gap-3 shrink-0">
+                <i class="fa-solid fa-hammer text-xl"></i> Question Builder
+            </button>
+
+            <h3 class="text-xl font-black mb-4 text-cyan-400 tracking-wide uppercase shrink-0 text-center sm:text-left w-full max-w-2xl mx-auto">Select Subject</h3>
+            <div id="subject-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto w-full pb-4">
+                <!-- Populated by JS -->
+            </div>
+            
+            <!-- DELETE ACCOUNT OPTION -->
+            <div class="w-full max-w-2xl mx-auto text-center mt-4 shrink-0 pb-8">
+                <button onclick="document.getElementById('delete-modal').classList.remove('hidden')" class="text-rose-500/60 hover:text-rose-400 text-xs font-bold uppercase tracking-widest transition-colors underline decoration-rose-500/30 underline-offset-4">
+                    Delete My Account
+                </button>
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN: LEADERBOARD
+             ============================== -->
+        <div id="screen-leaderboard" class="hidden p-6 sm:p-8 md:p-12 flex-grow flex flex-col overflow-y-auto animate-pop relative min-h-0">
+            <div class="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
+                <button onclick="switchScreen('screen-dashboard')" class="text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2 font-semibold text-sm sm:text-base bg-slate-900/50 px-3 py-2 rounded-lg border border-slate-800 backdrop-blur-sm">
+                    <i class="fa-solid fa-arrow-left"></i> <span class="hidden sm:inline">Dashboard</span>
+                </button>
+            </div>
+
+            <div class="text-center mt-10 mb-8 shrink-0">
+                <i class="fa-solid fa-ranking-star text-5xl text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] mb-4"></i>
+                <h2 class="text-3xl font-black text-white tracking-widest uppercase">Class Leaderboard</h2>
+                <p class="text-slate-400 text-sm font-semibold uppercase tracking-widest mt-2">BSECE 3-2 Official Rankings</p>
+            </div>
+
+            <div id="leaderboard-list" class="bg-slate-950 rounded-2xl border border-slate-800 overflow-y-auto min-h-0 flex-grow max-w-2xl mx-auto w-full shadow-inner">
+                <div class="flex items-center justify-center h-full p-10" id="leaderboard-loading">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-cyan-500"></i>
+                </div>
+                <!-- Rows populated by JS -->
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN 2: MAIN MENU (SUBJECT LOADED)
+             ============================== -->
+        <div id="screen-main" class="hidden p-6 sm:p-8 md:p-16 text-center flex-grow flex flex-col justify-center overflow-y-auto">
+            <div class="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
+                <button onclick="switchScreen('screen-dashboard')" class="text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2 font-semibold text-sm sm:text-base bg-slate-900/50 px-3 py-2 rounded-lg border border-slate-800 backdrop-blur-sm">
+                    <i class="fa-solid fa-arrow-left"></i> <span class="hidden sm:inline">Change Subject</span>
+                </button>
+            </div>
+
+            <div id="loading-indicator" class="flex flex-col items-center justify-center animate-pop">
+                <i class="fa-solid fa-circle-notch fa-spin text-5xl text-cyan-500 mb-4"></i>
+                <h2 class="text-xl text-slate-300 font-bold">Fetching modules...</h2>
+                <p id="loading-text" class="text-sm text-slate-500 mt-2">Loading data files...</p>
+            </div>
+
+            <div id="error-indicator" class="hidden flex flex-col items-center justify-center animate-pop">
+                <i class="fa-solid fa-triangle-exclamation text-5xl text-rose-500 mb-4"></i>
+                <h2 class="text-xl text-slate-300 font-bold">Data Error</h2>
+                <p id="error-text" class="text-sm text-rose-400 mt-2 text-center max-w-xs">An error occurred.</p>
+                <button onclick="switchScreen('screen-dashboard')" class="mt-6 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition-colors border border-slate-700">Go Back</button>
+            </div>
+
+            <div id="main-menu-content" class="hidden animate-pop flex flex-col items-center justify-center h-full pt-8 max-w-2xl mx-auto w-full">
+                <div id="current-subject-icon" class="text-5xl sm:text-6xl mb-4 sm:mb-6 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)] shrink-0"></div>
+                <h1 id="current-subject-title" class="text-2xl sm:text-4xl md:text-5xl font-black mb-2 sm:mb-4 text-white shrink-0 tracking-wide uppercase">SUBJECT TITLE</h1>
+                
+                <div class="flex flex-col md:flex-row gap-4 sm:gap-6 justify-center items-center shrink-0 w-full mt-6">
+                    <button onclick="switchScreen('screen-review')" class="w-full md:w-auto bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-cyan-500 text-cyan-50 font-bold text-lg py-3 px-6 rounded-xl transition-all uppercase tracking-wider">
+                        <i class="fa-solid fa-database text-cyan-400"></i> Reviewer Logs
+                    </button>
+                    <button onclick="switchScreen('screen-mode')" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-black text-lg py-3 px-6 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all uppercase tracking-wider">
+                        <i class="fa-solid fa-power-off"></i> Start Quiz
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN 3: REVIEW MODE
+             ============================== -->
+        <div id="screen-review" class="hidden flex flex-col h-full animate-pop min-h-0">
+            <div class="bg-slate-950 p-4 sm:p-6 flex justify-between items-center border-b border-slate-800 shrink-0">
+                <h2 class="text-xl sm:text-2xl font-bold text-white tracking-wider uppercase"><i class="fa-solid fa-database mr-2 text-cyan-400"></i> Data Logs</h2>
+                <button onclick="switchScreen('screen-main')" class="text-slate-500 hover:text-rose-400 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl sm:text-2xl"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto p-4 sm:p-6 md:p-8 flex-grow min-h-0 space-y-6 max-w-3xl mx-auto w-full" id="review-content-container"></div>
+            <div class="bg-slate-950 p-4 sm:p-6 border-t border-slate-800 shrink-0 text-center">
+                <button onclick="switchScreen('screen-mode')" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-transform hover:scale-105 uppercase tracking-widest">
+                    Run Diagnostics <i class="fa-solid fa-angles-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN 4: MODE SELECTION
+             ============================== -->
+        <div id="screen-mode" class="hidden flex flex-col h-full animate-pop flex-grow p-4 sm:p-8 md:p-12 overflow-y-auto">
+            <div class="flex justify-between items-start mb-6 shrink-0 w-full max-w-2xl mx-auto">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white mb-1 uppercase tracking-wide">Select Diagnostic Mode</h2>
+                    <p class="text-sm text-cyan-200/60 font-semibold tracking-wider uppercase">Configure testing parameters</p>
+                </div>
+                <button onclick="switchScreen('screen-main')" class="text-slate-500 hover:text-rose-400 transition-colors p-1 shrink-0">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="flex justify-center mb-6 bg-slate-950 rounded-xl p-1.5 w-full max-w-md mx-auto border border-slate-800 shrink-0">
+                <button id="btn-style-survival" onclick="setGameStyle('survival')" class="flex-1 py-2 px-2 rounded-lg font-bold text-xs sm:text-sm bg-cyan-600 text-white border border-cyan-500 uppercase tracking-wider">
+                    <i class="fa-solid fa-battery-quarter mr-1 text-rose-400"></i> Survival
+                </button>
+                <button id="btn-style-classic" onclick="setGameStyle('classic')" class="flex-1 py-2 px-2 rounded-lg font-bold text-xs sm:text-sm bg-slate-900 text-slate-500 hover:text-white border border-slate-800 uppercase tracking-wider">
+                    <i class="fa-solid fa-infinity mr-1 text-cyan-400"></i> Classic
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-4 sm:gap-6 max-w-2xl mx-auto w-full shrink-0 pb-6">
+                <button onclick="initiateGame('all')" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white p-4 sm:p-6 rounded-2xl transition-transform hover:scale-[1.02] border border-emerald-400/30 text-left">
+                    <div class="flex items-center gap-4 sm:gap-6">
+                        <div class="bg-white/20 p-3 sm:p-4 rounded-xl text-xl shrink-0"><i class="fa-solid fa-network-wired"></i></div>
+                        <div>
+                            <h3 class="text-xl sm:text-2xl font-bold mb-1 uppercase tracking-widest">Full System Test</h3>
+                            <p class="text-emerald-100 text-xs sm:text-sm hidden sm:block">Comprehensive test across this entire subject.</p>
+                        </div>
+                    </div>
+                </button>
+                
+                <div class="flex items-center gap-4 my-2 shrink-0">
+                    <div class="h-px bg-slate-800 flex-grow"></div>
+                    <span class="text-cyan-600 font-bold text-xs uppercase tracking-widest">Specific Modules</span>
+                    <div class="h-px bg-slate-800 flex-grow"></div>
+                </div>
+                
+                <div id="topic-buttons-container" class="grid grid-cols-1 gap-3 sm:gap-4"></div>
+
+                <!-- MULTIPLE RECENTLY OPENED SESSIONS -->
+                <div id="resume-section" class="hidden mt-6 shrink-0">
+                    <div class="flex items-center gap-4 my-2 shrink-0">
+                        <div class="h-px bg-slate-800 flex-grow"></div>
+                        <span class="text-orange-500 font-bold text-xs uppercase tracking-widest text-center">Recently Opened</span>
+                        <div class="h-px bg-slate-800 flex-grow"></div>
+                    </div>
+                    <div id="resume-button-container" class="flex flex-col mt-4 w-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN 5: GAME INTERFACE
+             ============================== -->
+        <div id="screen-game" class="hidden flex flex-col h-full animate-pop flex-grow min-h-0">
+            <div class="flex justify-between items-center bg-slate-950 p-2 sm:p-4 border-b border-slate-800 shrink-0 w-full">
+                <div class="flex items-center gap-1 sm:gap-2 text-cyan-400 shrink-0">
+                    <i class="fa-solid fa-bolt text-base sm:text-xl"></i>
+                    <span class="text-base sm:text-2xl font-black tracking-widest" id="score-display">0</span>
+                </div>
+                <div id="lives-display" class="text-emerald-400 flex gap-0.5 sm:gap-1 items-center justify-center flex-grow mx-2 min-w-0"></div>
+                <div class="flex items-center gap-1 sm:gap-3 shrink-0">
+                    <div id="streak-container" class="hidden flex items-center gap-1 bg-blue-500/20 text-blue-400 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm border border-blue-500/30">
+                        <i class="fa-solid fa-fire-flame-curved text-[10px] sm:text-sm"></i>
+                        <span id="streak-display" class="font-bold text-[10px] sm:text-xs tracking-widest uppercase">x2</span>
+                    </div>
+                    <div class="text-slate-500 font-bold tracking-widest text-center px-1 text-[10px] sm:text-xs uppercase shrink-0">
+                        SEQ <span id="q-current" class="text-cyan-300">1</span>/<span id="q-total">10</span>
+                    </div>
+                    <button onclick="quitGame()" class="text-slate-500 hover:text-rose-500 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-500/50 p-1.5 sm:p-2 rounded-lg transition-colors ml-1 shrink-0" title="Abort Sequence">
+                        <i class="fa-solid fa-eject text-sm sm:text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="timer-container" class="w-full h-1.5 sm:h-2 bg-slate-800 shrink-0">
+                <div id="timer-bar" class="h-full bg-cyan-400 w-full timer-transition"></div>
+            </div>
+            <div id="question-scroll-area" class="p-4 sm:p-6 md:p-10 flex-grow overflow-y-auto min-h-0 w-full">
+                <div class="mb-3 text-center sm:text-left flex items-center justify-between max-w-3xl mx-auto w-full">
+                    <span id="topic-display" class="inline-block bg-slate-800 text-cyan-300 border border-slate-700 px-3 py-1 rounded-sm text-[10px] sm:text-xs font-bold tracking-widest uppercase">Module</span>
+                    <span id="q-type-badge" class="hidden inline-block bg-blue-900/40 text-blue-300 border border-blue-500/30 px-3 py-1 rounded-sm text-[10px] sm:text-xs font-bold uppercase tracking-widest">Multi-Select</span>
+                </div>
+                <div id="image-container" class="hidden w-full max-w-4xl mx-auto mb-6 border-2 border-slate-700 rounded-xl overflow-hidden bg-slate-950 p-2 sm:p-4 shadow-lg">
+                    <img id="question-image" src="" class="w-full h-auto object-contain max-h-96 sm:max-h-[450px] rounded-lg bg-slate-100">
+                </div>
+                <h2 id="question-text" class="text-lg sm:text-xl md:text-2xl font-semibold mb-6 sm:mb-8 text-slate-100 max-w-3xl mx-auto w-full text-center sm:text-left">Loading Sequence...</h2>
+                <div id="options-container" class="grid grid-cols-1 gap-3 mb-6 max-w-3xl mx-auto w-full"></div>
+                <div id="explanation-box" class="hidden max-w-3xl mx-auto w-full bg-slate-800/80 border-l-4 border-cyan-500 rounded-r-xl p-4 mb-6 text-slate-200">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-terminal text-cyan-400 mt-1"></i>
+                        <div>
+                            <span class="font-bold text-cyan-300 block mb-1 text-sm uppercase tracking-wider">System Output:</span>
+                            <span id="explanation-text" class="text-sm leading-relaxed"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right pb-8 flex justify-end gap-3 max-w-3xl mx-auto w-full">
+                    <button id="submit-multi-btn" onclick="submitMultiAnswer()" class="hidden bg-blue-600 text-white font-bold py-3 px-6 rounded-xl uppercase tracking-widest">Execute <i class="fa-solid fa-gears ml-2"></i></button>
+                    <button id="next-btn" onclick="nextQuestion()" class="hidden bg-cyan-600 text-white font-bold py-3 px-6 rounded-xl uppercase tracking-widest">Proceed <i class="fa-solid fa-forward-step ml-2"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN 6: END SCREEN
+             ============================== -->
+        <div id="screen-end" class="hidden p-6 sm:p-8 md:p-12 text-center animate-pop flex-grow flex flex-col justify-center overflow-y-auto">
+            <div id="end-icon" class="text-5xl sm:text-7xl mb-4 text-cyan-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]"><i class="fa-solid fa-microchip"></i></div>
+            <h2 class="text-2xl sm:text-4xl font-black mb-2 text-white uppercase tracking-widest" id="end-title">Diagnostics Complete</h2>
+            <p class="text-cyan-200/70 mb-8 text-sm sm:text-lg font-semibold uppercase tracking-wider" id="end-message">Saving to database...</p>
+            
+            <div class="bg-slate-950 rounded-2xl p-6 sm:p-8 inline-block mx-auto mb-8 border border-slate-800 w-full max-w-md relative overflow-hidden">
+                <div class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">System Score</div>
+                <div class="text-5xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-6" id="final-score">0</div>
+                <div class="grid grid-cols-3 gap-2 text-xs divide-x divide-slate-800">
+                    <div class="text-center">
+                        <span class="block text-emerald-500 font-bold text-xl" id="final-correct">0</span>
+                        <span class="text-slate-500 uppercase font-bold text-[10px] tracking-widest">Valid</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="block text-rose-500 font-bold text-xl" id="final-wrong">0</span>
+                        <span class="text-slate-500 uppercase font-bold text-[10px] tracking-widest">Errors</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="block text-blue-400 font-bold text-xl" id="final-streak">0</span>
+                        <span class="text-slate-500 uppercase font-bold text-[10px] tracking-widest">Peak Seq</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-center gap-3 w-full max-w-md mx-auto">
+                <button onclick="switchScreen('screen-dashboard')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-8 rounded-xl uppercase tracking-widest transition-colors w-full sm:w-auto">Dashboard</button>
+                <button onclick="switchScreen('screen-mode')" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-xl uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(6,182,212,0.4)] w-full sm:w-auto">Run Again</button>
+            </div>
+        </div>
+
+        <!-- QUIT MODAL -->
+        <div id="quit-modal" class="hidden fixed inset-0 bg-slate-950/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-[0_0_30px_rgba(225,29,72,0.2)] max-w-sm w-full text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-rose-500"></div>
+                <div class="text-5xl text-rose-500 mb-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <h3 class="text-xl font-black text-white mb-2 uppercase tracking-widest">Abort Process?</h3>
+                <p class="text-sm text-slate-400 mb-6">Are you sure you want to terminate the current diagnostic sequence?</p>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('quit-modal').classList.add('hidden')" class="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl uppercase tracking-wider">Cancel</button>
+                    <button onclick="confirmQuit()" class="flex-1 bg-rose-600 text-white font-bold py-3 rounded-xl uppercase tracking-wider">Terminate</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESTART MODAL -->
+        <div id="restart-modal" class="hidden fixed inset-0 bg-slate-950/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-[0_0_30px_rgba(225,29,72,0.2)] max-w-sm w-full text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
+                <div class="text-5xl text-orange-500 mb-4"><i class="fa-solid fa-rotate-right"></i></div>
+                <h3 class="text-xl font-black text-white mb-2 uppercase tracking-widest">Restart Topic?</h3>
+                <p class="text-sm text-slate-400 mb-6">Your saved progress for this topic will be deleted and you will start from the beginning.</p>
+                <div class="flex gap-3">
+                    <button onclick="cancelRestart()" class="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl uppercase tracking-wider">Cancel</button>
+                    <button onclick="executeRestart()" class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-xl uppercase tracking-wider">Restart</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             SCREEN: QUESTION BUILDER
+             ============================== -->
+        <div id="screen-builder" class="hidden flex flex-col h-full animate-pop flex-grow min-h-0">
+            <div class="bg-slate-950 p-4 sm:p-6 flex justify-between items-center border-b border-slate-800 shrink-0">
+                <h2 class="text-xl sm:text-2xl font-bold text-white tracking-wider uppercase"><i class="fa-solid fa-hammer mr-2 text-violet-400"></i> Question Builder</h2>
+                <button onclick="switchScreen('screen-dashboard')" class="text-slate-500 hover:text-rose-400 transition-colors"><i class="fa-solid fa-xmark text-xl sm:text-2xl"></i></button>
+            </div>
+
+            <!-- Tab Bar -->
+            <div class="flex bg-slate-950 border-b border-slate-800 shrink-0">
+                <button id="tab-build-btn" onclick="switchBuilderTab('build')" class="flex-1 py-3 text-xs sm:text-sm font-bold uppercase tracking-widest text-violet-400 border-b-2 border-violet-500 transition-colors">
+                    <i class="fa-solid fa-plus-circle mr-1"></i> Create
+                </button>
+                <button id="tab-import-btn" onclick="switchBuilderTab('import')" class="flex-1 py-3 text-xs sm:text-sm font-bold uppercase tracking-widest text-slate-500 hover:text-white border-b-2 border-transparent transition-colors">
+                    <i class="fa-solid fa-file-import mr-1"></i> Import JSON
+                </button>
+                <button id="tab-preview-btn" onclick="switchBuilderTab('preview')" class="flex-1 py-3 text-xs sm:text-sm font-bold uppercase tracking-widest text-slate-500 hover:text-white border-b-2 border-transparent transition-colors">
+                    <i class="fa-solid fa-eye mr-1"></i> Preview
+                </button>
+            </div>
+
+            <div class="flex-grow overflow-y-auto min-h-0">
+
+                <!-- TAB: BUILD -->
+                <div id="tab-build" class="p-4 sm:p-6 max-w-2xl mx-auto w-full space-y-5">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <h3 class="text-violet-400 font-bold uppercase tracking-widest text-xs">Category Info</h3>
+                        
+                        <!-- Subject Selection -->
+                        <div>
+                            <label class="block text-cyan-400 text-xs font-bold mb-1 uppercase tracking-widest">Subject</label>
+                            <div class="flex gap-2">
+                                <select id="b-subject" onchange="handleBuilderSubjectChange()" class="flex-1 bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm cursor-pointer appearance-none">
+                                    <option value="" disabled selected>-- Select Subject --</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <button id="btn-del-subj" onclick="promptDeleteSubject()" class="hidden bg-rose-900/40 hover:bg-rose-800 border border-rose-700 text-rose-400 font-bold px-4 rounded-lg transition-colors shrink-0" title="Delete Subject">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- New Subject Fields (Hidden) -->
+                        <div id="b-new-subject-group" class="hidden space-y-3 bg-slate-950 p-4 rounded-xl border border-violet-500/30">
+                            <h4 class="text-violet-300 text-[10px] uppercase font-bold tracking-widest"><i class="fa-solid fa-folder-plus mr-1"></i> Add New Subject</h4>
+                            <input id="b-new-subj-id" type="text" placeholder="Subject Code (e.g. MATH101)" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-1.5 px-3 focus:border-violet-500 text-sm uppercase">
+                            <input id="b-new-subj-name" type="text" placeholder="Full Subject Name" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-1.5 px-3 focus:border-violet-500 text-sm">
+                        </div>
+
+                        <!-- Lesson Selection -->
+                        <div>
+                            <label class="block text-cyan-400 text-xs font-bold mb-1 uppercase tracking-widest">Lesson / Topic</label>
+                            <div class="flex gap-2">
+                                <select id="b-lesson" onchange="handleBuilderLessonChange()" class="flex-1 bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm cursor-pointer appearance-none" disabled>
+                                    <option value="" disabled selected>-- Select Subject First --</option>
+                                </select>
+                                <button id="btn-del-lesson" onclick="promptDeleteLesson()" class="hidden bg-rose-900/40 hover:bg-rose-800 border border-rose-700 text-rose-400 font-bold px-4 rounded-lg transition-colors shrink-0" title="Delete Lesson">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- New Lesson Field (Hidden) -->
+                        <div id="b-new-lesson-group" class="hidden">
+                            <input id="b-new-lesson-name" type="text" placeholder="New Lesson Title (e.g. Chapter 1: Introduction)" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:border-violet-500 text-sm border-l-2 border-l-violet-500">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <h3 class="text-violet-400 font-bold uppercase tracking-widest text-xs">Question Settings</h3>
+
+                        <div>
+                            <label class="block text-cyan-400 text-xs font-bold mb-1 uppercase tracking-widest">Question Text</label>
+                            <textarea id="b-question" rows="3" placeholder="Type your question here..." class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm resize-none"></textarea>
+                        </div>
+
+                        <!-- Image Toggle -->
+                        <div class="flex items-center gap-3">
+                            <button id="b-img-toggle" onclick="toggleBuilderImage()" class="flex items-center gap-2 bg-slate-800 border border-slate-700 hover:border-violet-500 text-slate-400 hover:text-violet-400 font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-lg transition-colors">
+                                <i class="fa-solid fa-image"></i> Add Image
+                            </button>
+                            <span class="text-slate-600 text-xs">Optional</span>
+                        </div>
+                        <div id="b-img-box" class="hidden space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <label class="block text-cyan-400 text-xs font-bold mb-1 uppercase tracking-widest">Upload or Link Image</label>
+                            
+                            <div class="flex gap-2">
+                                <input id="b-image" type="text" placeholder="Paste image URL here..." class="flex-1 bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm">
+                                <button onclick="document.getElementById('b-image-upload').click()" class="bg-violet-600 hover:bg-violet-500 text-white font-bold px-4 rounded-lg text-sm transition-colors shrink-0 flex items-center justify-center" title="Upload from Device">
+                                    <i class="fa-solid fa-upload"></i>
+                                </button>
+                            </div>
+                            <input type="file" id="b-image-upload" accept="image/*" class="hidden" onchange="handleBuilderImageUpload(event)">
+                            <div id="b-image-status" class="text-[10px] font-bold tracking-wider text-slate-500 hidden uppercase">Uploading...</div>
+                        </div>
+
+                        <!-- Answer Type -->
+                        <div>
+                            <label class="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-widest">Answer Type</label>
+                            <div class="flex gap-2">
+                                <button id="b-type-single" onclick="setBuilderType('single')" class="flex-1 py-2 rounded-lg font-bold text-xs uppercase tracking-wider bg-violet-600 text-white border border-violet-500">
+                                    <i class="fa-regular fa-circle mr-1"></i> Single
+                                </button>
+                                <button id="b-type-multiple" onclick="setBuilderType('multiple')" class="flex-1 py-2 rounded-lg font-bold text-xs uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">
+                                    <i class="fa-regular fa-square mr-1"></i> Multiple
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Number of Choices -->
+                        <div>
+                            <label class="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-widest">Number of Choices: <span id="b-num-label" class="text-white">4</span></label>
+                            <input id="b-num-choices" type="range" min="2" max="6" value="4" oninput="updateChoiceInputs()" class="w-full accent-violet-500">
+                        </div>
+
+                        <!-- Choice Inputs -->
+                        <div id="b-choices-container" class="space-y-2"></div>
+
+                        <div id="b-multi-hint" class="hidden text-xs text-blue-400 bg-blue-900/20 border border-blue-500/20 rounded-lg px-3 py-2">
+                            <i class="fa-solid fa-info-circle mr-1"></i> For multiple answer: click the checkboxes of ALL correct answers.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                        <h3 class="text-violet-400 font-bold uppercase tracking-widest text-xs">Explanation (Optional)</h3>
+                        <textarea id="b-explanation" rows="2" placeholder="Explain why the answer is correct..." class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-sm resize-none"></textarea>
+                    </div>
+
+                    <div class="flex gap-3 pb-8">
+                        <button onclick="addBuilderQuestion()" class="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-xl uppercase tracking-widest transition-all hover:scale-[1.02] shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+                            <i class="fa-solid fa-plus mr-2"></i> Add to List
+                        </button>
+                        <button onclick="clearBuilderForm()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 font-bold py-3 px-4 rounded-xl transition-colors">
+                            <i class="fa-solid fa-eraser"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB: IMPORT JSON -->
+                <div id="tab-import" class="hidden p-4 sm:p-6 max-w-2xl mx-auto w-full space-y-5">
+                    <div id="drop-zone" ondragover="event.preventDefault(); this.classList.add('border-violet-400')" ondragleave="this.classList.remove('border-violet-400')" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-600 hover:border-violet-500 rounded-2xl p-10 text-center cursor-pointer transition-colors" onclick="document.getElementById('json-file-input').click()">
+                        <i class="fa-solid fa-file-code text-4xl text-violet-400 mb-4 block"></i>
+                        <p class="text-white font-bold text-sm">Drag & Drop your JSON file here</p>
+                        <p class="text-slate-500 text-xs mt-1">or click to browse</p>
+                        <input id="json-file-input" type="file" accept=".json" class="hidden" onchange="handleFileInput(event)">
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <h3 class="text-violet-400 font-bold uppercase tracking-widest text-xs mb-3">Or Paste JSON Directly</h3>
+                        <textarea id="json-paste-area" rows="8" placeholder='[{"topic": "...", "questions": [...]}]' class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:outline-none focus:border-violet-500 transition-colors text-xs font-mono resize-none"></textarea>
+                        <button onclick="importFromPaste()" class="mt-3 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-xl uppercase tracking-widest transition-all">
+                            <i class="fa-solid fa-file-import mr-2"></i> Import JSON
+                        </button>
+                    </div>
+                    <div id="import-status" class="hidden rounded-xl p-4 text-sm font-bold text-center"></div>
+                </div>
+
+                <!-- TAB: PREVIEW -->
+                <div id="tab-preview" class="hidden p-4 sm:p-6 max-w-2xl mx-auto w-full pb-8">
+                    <div id="preview-empty" class="text-center py-16 text-slate-500">
+                        <i class="fa-solid fa-inbox text-4xl mb-3 block"></i>
+                        <p class="font-bold text-sm">No questions yet. Create some in the Build tab or Import a JSON.</p>
+                    </div>
+                    <div id="preview-list" class="space-y-4"></div>
+                    <div id="preview-actions" class="hidden mt-6 space-y-3">
+                        <button onclick="saveBuilderToDatabase()" id="btn-save-db" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl uppercase tracking-widest transition-all hover:scale-[1.02] shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl"></i> Save to Database
+                        </button>
+                        <div class="flex gap-3">
+                            <button onclick="exportBuilderJSON()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-3 rounded-xl uppercase tracking-widest transition-colors text-xs">
+                                <i class="fa-solid fa-download mr-1"></i> Backup JSON
+                            </button>
+                            <button onclick="clearAllBuilderQuestions()" class="bg-rose-900/40 hover:bg-rose-800 border border-rose-700 text-rose-400 font-bold py-3 px-4 rounded-xl transition-colors">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- DELETE ACCOUNT MODAL -->
+        <div id="delete-modal" class="hidden fixed inset-0 bg-slate-950/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-[0_0_30px_rgba(225,29,72,0.2)] max-w-sm w-full text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-rose-600"></div>
+                <div class="text-5xl text-rose-600 mb-4"><i class="fa-solid fa-user-xmark"></i></div>
+                <h3 class="text-xl font-black text-white mb-2 uppercase tracking-widest">Delete Account?</h3>
+                <p class="text-sm text-slate-400 mb-6">This action is permanent. All your progress, scores, and leaderboard ranking will be lost forever.</p>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('delete-modal').classList.add('hidden')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl uppercase tracking-wider transition-colors">Cancel</button>
+                    <button id="btn-confirm-delete" onclick="executeDeleteAccount()" class="flex-1 bg-rose-700 hover:bg-rose-600 text-white font-bold py-3 rounded-xl uppercase tracking-wider transition-colors">Delete</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Deletion Verification Modal -->
+    <div id="delete-verify-modal" class="hidden fixed inset-0 z-[300] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-pop">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl">
+            <h3 class="text-2xl font-black mb-2 text-rose-500 uppercase tracking-widest"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Warning</h3>
+            <p id="delete-verify-msg" class="text-slate-300 text-sm mb-6"></p>
+            <p class="text-rose-400 font-bold text-xs mb-3 uppercase tracking-widest">Type "1234" to confirm</p>
+            <input type="text" id="delete-verify-input" oninput="checkDeleteVerifyInput()" class="w-full bg-slate-950 text-center text-white border border-slate-700 rounded-xl py-3 px-4 focus:outline-none focus:border-rose-500 text-xl font-bold tracking-[0.5em] mb-6">
+            <div class="flex gap-4">
+                <button onclick="closeDeleteVerifyModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors">Cancel</button>
+                <button id="btn-confirm-final-delete" onclick="executeFinalDelete()" class="flex-1 bg-rose-700 hover:bg-rose-600 text-white font-bold py-3 rounded-xl opacity-50 cursor-not-allowed transition-all" disabled>Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+    <script src="builder.js"></script>
+
+</body>
+</html>
